@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ma garde-robe couleur</title>
+<meta name="theme-color" content="#1F2A44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Garde-robe">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one mobile column; palette reference up top, add-a-garment card, then the saved list as a photo grid. */
+:root {
+  --paper: #F3F0EB;
+  --card: #FFFFFF;
+  --ink: #1F2A44;
+  --muted: #5F6676;
+  --line: #DDD8D0;
+  --accent: #7A5C63;
+  --accent-ink: #FFFFFF;
+  --good: #2F6B4F;
+  --good-bg: #E3EFE7;
+  --warn: #8A6414;
+  --warn-bg: #F6ECD3;
+  --bad: #A23A32;
+  --bad-bg: #F6E1DE;
+  --neutral-bg: #E8EAF0;
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14181F; --card: #1C222C; --ink: #E9E6E0; --muted: #A2A8B4; --line: #2F3744;
+    --accent: #C49AA3; --accent-ink: #1A1416;
+    --good: #8FCBA7; --good-bg: #1F3329; --warn: #E2BE6E; --warn-bg: #3A3020; --bad: #EE9A90; --bad-bg: #3D2422; --neutral-bg: #262D39;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14181F; --card: #1C222C; --ink: #E9E6E0; --muted: #A2A8B4; --line: #2F3744;
+  --accent: #C49AA3; --accent-ink: #1A1416;
+  --good: #8FCBA7; --good-bg: #1F3329; --warn: #E2BE6E; --warn-bg: #3A3020; --bad: #EE9A90; --bad-bg: #3D2422; --neutral-bg: #262D39;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+main { max-width: 760px; margin: 0 auto; padding: calc(20px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(64px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 22px; }
+h1, h2 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; letter-spacing: 0.005em; }
+h1 { font-size: 2.3rem; line-height: 1.05; }
+h2 { font-size: 1.55rem; line-height: 1.15; }
+p { margin: 0; }
+.sub { color: var(--muted); max-width: 60ch; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+button, .btn { font: inherit; font-weight: 600; border-radius: 999px; padding: 10px 16px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+button.primary, .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, .thumb:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.small { font-size: 0.86rem; }
+.muted { color: var(--muted); }
+.banner { font-size: 0.9rem; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); }
+.banner[hidden] { display: none; }
+
+/* Palette */
+.pal-group { display: flex; flex-direction: column; gap: 8px; }
+.pal-label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+.sw { display: flex; flex-direction: column; gap: 4px; font-size: 0.74rem; color: var(--muted); }
+.sw i { display: block; height: 34px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08); }
+.sw.avoid i { background-image: linear-gradient(135deg, transparent 46%, rgba(255,255,255,0.85) 46%, rgba(255,255,255,0.85) 54%, transparent 54%); }
+
+/* Add flow */
+.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 22px 16px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.drop.over { border-color: var(--accent); }
+.preview-wrap { position: relative; border-radius: 12px; overflow: hidden; background: var(--neutral-bg); }
+.preview-wrap img { display: block; width: 100%; height: auto; max-height: 460px; object-fit: contain; cursor: crosshair; }
+.picker-dot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); pointer-events: none; }
+.candidates { display: flex; gap: 8px; flex-wrap: wrap; }
+.cand { width: 44px; height: 44px; border-radius: 10px; border: 2px solid transparent; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
+.cand[aria-pressed="true"] { border-color: var(--ink); }
+.verdict { border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: start; }
+.verdict .chip { width: 56px; height: 56px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); }
+.verdict strong { display: block; font-size: 1.05rem; }
+.v-good { background: var(--good-bg); }
+.v-good strong { color: var(--good); }
+.v-warn { background: var(--warn-bg); }
+.v-warn strong { color: var(--warn); }
+.v-bad { background: var(--bad-bg); }
+.v-bad strong { color: var(--bad); }
+.v-try { background: var(--neutral-bg); }
+.ocr { background: var(--neutral-bg); border-radius: 10px; padding: 9px 12px; color: var(--muted); }
+input.detected, select.detected { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+.ai { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; display: flex; flex-direction: column; gap: 6px; }
+.ai[hidden] { display: none; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fields .full { grid-column: 1 / -1; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+input, textarea, select { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; width: 100%; }
+textarea { min-height: 64px; resize: vertical; }
+@media (max-width: 420px) { .fields { grid-template-columns: 1fr; } }
+
+/* List */
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button { padding: 6px 12px; font-size: 0.88rem; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.thumb { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; text-align: left; padding: 0; font-weight: 400; cursor: pointer; }
+.thumb .img { aspect-ratio: 4 / 5; background: var(--neutral-bg); width: 100%; }
+.thumb .img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .meta { padding: 10px; display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.thumb .name { font-weight: 600; font-size: 0.92rem; line-height: 1.25; overflow-wrap: anywhere; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700; border-radius: 999px; padding: 3px 9px 3px 4px; width: fit-content; }
+.pill i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.15); display: inline-block; }
+.p-good { background: var(--good-bg); color: var(--good); }
+.p-warn { background: var(--warn-bg); color: var(--warn); }
+.p-bad { background: var(--bad-bg); color: var(--bad); }
+.p-try { background: var(--neutral-bg); color: var(--muted); }
+.status-tag { font-size: 0.74rem; color: var(--muted); }
+.empty { text-align: center; color: var(--muted); padding: 26px 12px; border: 1px dashed var(--line); border-radius: 12px; }
+
+/* Detail sheet */
+dialog { border: none; border-radius: 16px; padding: 0; width: min(560px, calc(100% - 24px)); max-height: calc(100% - 32px); background: var(--card); color: var(--ink); }
+dialog::backdrop { background: rgba(10, 14, 22, 0.55); }
+.sheet { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.sheet img { width: 100%; max-height: 380px; object-fit: contain; border-radius: 10px; background: var(--neutral-bg); display: block; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { flex: 1; border: none; border-radius: 0; justify-content: center; padding: 9px 6px; font-size: 0.88rem; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.danger { color: var(--bad); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>Ma garde-robe couleur</h1>
+    <p class="sub">Ajoute la photo d'un vêtement qui t'intéresse. L'app repère sa couleur et la compare à ta palette : teint neutre, contraste doux, peau qui rougit facilement.</p>
+  </header>
+
+  <p class="banner" id="saveBanner" hidden></p>
+
+  <section class="card" aria-labelledby="palTitle">
+    <h2 id="palTitle">Ta palette</h2>
+    <div class="pal-group"><span class="pal-label">À favoriser</span><div class="swatches" id="palGood"></div></div>
+    <div class="pal-group"><span class="pal-label">Avec modération</span><div class="swatches" id="palWarn"></div></div>
+    <div class="pal-group"><span class="pal-label">À éviter près du visage</span><div class="swatches" id="palBad"></div></div>
+  </section>
+
+  <section class="card" aria-labelledby="addTitle">
+    <h2 id="addTitle">Ajouter un vêtement</h2>
+    <div class="drop" id="drop">
+      <p>Une capture d'écran de boutique ou une photo prise en magasin.</p>
+      <label class="btn primary" for="fileInput" style="flex-direction:row;color:var(--accent-ink);font-size:1rem">Choisir une photo</label>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+
+    <div id="editor" hidden style="display:flex;flex-direction:column;gap:14px">
+      <div class="preview-wrap" id="previewWrap">
+        <img id="preview" alt="Photo du vêtement">
+        <span class="picker-dot" id="pickerDot" hidden></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <p class="small muted">Couleurs détectées. Touche-en une, ou touche directement le vêtement sur la photo.</p>
+        <div class="candidates" id="candidates"></div>
+      </div>
+      <div class="verdict" id="verdict"></div>
+      <div class="fields">
+        <p class="full small ocr" id="ocrStatus" role="status" hidden></p>
+        <label class="full" for="fName">Nom<input id="fName" placeholder="Ex. Amigazo crew bleu"></label>
+        <label for="fBrand">Marque<input id="fBrand" placeholder="Cotopaxi"></label>
+        <label for="fPrice">Prix<input id="fPrice" placeholder="180 $"></label>
+        <label class="full" for="fType">Type
+          <select id="fType">
+            <option value="">À préciser</option>
+            <option value="haut">Haut (t-shirt, chemise)</option>
+            <option value="chandail">Chandail / polaire</option>
+            <option value="manteau">Manteau / veste</option>
+            <option value="bas">Pantalon / short</option>
+            <option value="chaussures">Chaussures</option>
+            <option value="accessoire">Accessoire</option>
+          </select>
+        </label>
+        <label class="full" for="fLink">Lien<input id="fLink" type="url" placeholder="https://"></label>
+        <label class="full" for="fNote">Note<textarea id="fNote" placeholder="Taille, rabais à surveiller, avec quoi le porter..."></textarea></label>
+      </div>
+      <div class="row between">
+        <button type="button" id="cancelBtn">Annuler</button>
+        <button type="button" class="primary" id="saveBtn">Enregistrer</button>
+      </div>
+      <p class="small muted" id="saveMsg" role="status"></p>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="listTitle">
+    <div class="row between">
+      <h2 id="listTitle">Mes vêtements</h2>
+      <div class="filters" id="filters">
+        <button type="button" data-f="all" aria-pressed="true">Tous</button>
+        <button type="button" data-f="envie" aria-pressed="false">Envies</button>
+        <button type="button" data-f="achete" aria-pressed="false">Achetés</button>
+        <button type="button" data-f="ecarte" aria-pressed="false">Écartés</button>
+      </div>
+    </div>
+    <p class="small muted" id="listState" role="status">Chargement...</p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="card" aria-labelledby="backupTitle">
+    <h2 id="backupTitle">Sauvegarde</h2>
+    <p class="small muted">Tes vêtements restent dans ce téléphone seulement. Exporte une copie de temps en temps : elle te permet de tout récupérer sur un autre appareil ou après avoir vidé Safari.</p>
+    <div class="row">
+      <button type="button" id="exportBtn">Exporter une copie</button>
+      <label class="btn" for="importInput" style="flex-direction:row;color:var(--ink);font-size:1rem">Importer une copie</label>
+      <input type="file" id="importInput" accept="application/json,.json" hidden>
+    </div>
+    <p class="small muted" id="backupMsg" role="status"></p>
+  </section>
+</main>
+
+<dialog id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet" id="sheetBody"></div>
+</dialog>
+
+<script>
+"use strict";
+// ---------- Palette ----------
+const PALETTE = [
+  { n: "Marine", h: "#1F2A44", g: "good", t: "Ta valeur sûre : unifie le teint et calme les rougeurs." },
+  { n: "Indigo", h: "#2E3A6B", g: "good", t: "Un bleu profond qui va avec ton sous-ton neutre." },
+  { n: "Ardoise", h: "#5A6B7D", g: "good", t: "Bleu-gris sourd, parfait pour ton contraste doux." },
+  { n: "Bleu-gris", h: "#7C8DA0", g: "good", t: "Doux et lumineux sans être vif." },
+  { n: "Sarcelle", h: "#2F6B6E", g: "good", t: "Bleu-vert qui neutralise visuellement les rougeurs." },
+  { n: "Forêt", h: "#2F4A3A", g: "good", t: "Vert profond, s'accorde avec les reflets dorés de ta barbe." },
+  { n: "Sauge", h: "#8A9A84", g: "good", t: "Vert grisé, doux et facile à porter." },
+  { n: "Olive foncé", h: "#5B5F3A", g: "good", t: "Un vert terreux qui reprend la chaleur de ta barbe." },
+  { n: "Mauve-brun", h: "#7A5C63", g: "good", t: "Ta meilleure couleur sur les photos." },
+  { n: "Vieux rose", h: "#B98A8E", g: "good", t: "Rose cendré flatteur ; à porter avec marine ou charbon." },
+  { n: "Bordeaux", h: "#6B2E3A", g: "good", t: "Un rouge sourd et profond, contrairement au rouge vif." },
+  { n: "Prune", h: "#5A3550", g: "good", t: "Profond et doux, belle alternative au noir." },
+  { n: "Taupe", h: "#8B7D76", g: "good", t: "Neutre chaud-froid équilibré." },
+  { n: "Greige", h: "#B5ADA2", g: "good", t: "Le beige qui te va : il tire vers le gris pierre." },
+  { n: "Charbon", h: "#3C3F44", g: "good", t: "Plus doux que le noir, même effet chic." },
+  { n: "Gris chiné", h: "#9A9A9C", g: "good", t: "Neutre facile, sans dureté." },
+  { n: "Blanc cassé", h: "#EDE8E0", g: "good", t: "Plus flatteur que le blanc pur." },
+  { n: "Noir", h: "#121212", g: "warn", t: "Un peu dur près du visage ; mieux en pantalon ou en couche extérieure." },
+  { n: "Blanc éclatant", h: "#FAFAFA", g: "warn", t: "Correct, mais le blanc cassé est plus doux pour toi." },
+  { n: "Rouge vif", h: "#D22B2B", g: "bad", t: "Accentue les rougeurs du visage." },
+  { n: "Orange", h: "#E8752A", g: "bad", t: "Fait ressortir les rougeurs et jaunit le teint." },
+  { n: "Corail", h: "#F07B6B", g: "bad", t: "Trop vif et chaud, accentue les rougeurs." },
+  { n: "Fuchsia", h: "#D63384", g: "bad", t: "Trop vif pour ton contraste doux." },
+  { n: "Jaune vif", h: "#F2D02E", g: "bad", t: "Écrase ton teint." },
+  { n: "Jaune pâle", h: "#F2EBB0", g: "bad", t: "Tire ton teint vers le jaune." },
+  { n: "Moutarde", h: "#C9A227", g: "bad", t: "Donne un teint terne." },
+  { n: "Camel doré", h: "#C19A5B", g: "bad", t: "Trop doré, te rend un peu jaunâtre." },
+  { n: "Sable", h: "#D6C2A0", g: "bad", t: "Trop proche de ta peau : il te délave." }
+];
+
+const VERDICTS = {
+  good: { label: "Dans ta palette", cls: "v-good", pill: "p-good" },
+  warn: { label: "Avec modération", cls: "v-warn", pill: "p-warn" },
+  bad:  { label: "À éviter près du visage", cls: "v-bad", pill: "p-bad" },
+  try:  { label: "À essayer en magasin", cls: "v-try", pill: "p-try" }
+};
+
+// ---------- Color math ----------
+function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function rgbToHex(r, g, b) { return "#" + [r, g, b].map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("").toUpperCase(); }
+function rgbToLab(r, g, b) {
+  const f = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const R = f(r), G = f(g), B = f(b);
+  let X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
+  let Y = (R * 0.2126 + G * 0.7152 + B * 0.0722);
+  let Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+  const k = t => t > 0.008856 ? Math.cbrt(t) : (7.787 * t + 16 / 116);
+  X = k(X); Y = k(Y); Z = k(Z);
+  return [116 * Y - 16, 500 * (X - Y), 200 * (Y - Z)];
+}
+function dE00(l1, l2) {
+  const [L1, a1, b1] = l1, [L2, a2, b2] = l2;
+  const rad = Math.PI / 180, deg = 180 / Math.PI;
+  const C1 = Math.hypot(a1, b1), C2 = Math.hypot(a2, b2), Cb = (C1 + C2) / 2;
+  const G = 0.5 * (1 - Math.sqrt(Math.pow(Cb, 7) / (Math.pow(Cb, 7) + Math.pow(25, 7))));
+  const a1p = a1 * (1 + G), a2p = a2 * (1 + G);
+  const C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+  const h = (b, a) => { if (b === 0 && a === 0) return 0; const v = Math.atan2(b, a) * deg; return v < 0 ? v + 360 : v; };
+  const h1p = h(b1, a1p), h2p = h(b2, a2p);
+  const dLp = L2 - L1, dCp = C2p - C1p;
+  let dhp = 0;
+  if (C1p * C2p !== 0) { dhp = h2p - h1p; if (dhp > 180) dhp -= 360; else if (dhp < -180) dhp += 360; }
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp * rad / 2);
+  const Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+  let hbp = h1p + h2p;
+  if (C1p * C2p !== 0) { if (Math.abs(h1p - h2p) > 180) hbp = (h1p + h2p < 360) ? (h1p + h2p + 360) / 2 : (h1p + h2p - 360) / 2; else hbp = (h1p + h2p) / 2; }
+  const T = 1 - 0.17 * Math.cos((hbp - 30) * rad) + 0.24 * Math.cos(2 * hbp * rad) + 0.32 * Math.cos((3 * hbp + 6) * rad) - 0.2 * Math.cos((4 * hbp - 63) * rad);
+  const dTh = 30 * Math.exp(-Math.pow((hbp - 275) / 25, 2));
+  const Rc = 2 * Math.sqrt(Math.pow(Cbp, 7) / (Math.pow(Cbp, 7) + Math.pow(25, 7)));
+  const Sl = 1 + (0.015 * Math.pow(Lbp - 50, 2)) / Math.sqrt(20 + Math.pow(Lbp - 50, 2));
+  const Sc = 1 + 0.045 * Cbp, Sh = 1 + 0.015 * Cbp * T;
+  const Rt = -Math.sin(2 * dTh * rad) * Rc;
+  return Math.sqrt(Math.pow(dLp / Sl, 2) + Math.pow(dCp / Sc, 2) + Math.pow(dHp / Sh, 2) + Rt * (dCp / Sc) * (dHp / Sh));
+}
+PALETTE.forEach(p => { p.lab = rgbToLab(...hexToRgb(p.h)); });
+
+function judge(hex) {
+  const lab = rgbToLab(...hexToRgb(hex));
+  const chroma = Math.hypot(lab[1], lab[2]);
+  let best = null, bestGood = null;
+  for (const p of PALETTE) {
+    const d = dE00(lab, p.lab);
+    if (!best || d < best.d) best = { p, d };
+    if (p.g === "good" && (!bestGood || d < bestGood.d)) bestGood = { p, d };
+  }
+  let key, text;
+  if (best.p.g === "bad" && best.d < 22) { key = "bad"; text = `Proche de « ${best.p.n} ». ${best.p.t}`; }
+  else if (best.p.g === "warn" && best.d < 14) { key = "warn"; text = `Proche de « ${best.p.n} ». ${best.p.t}`; }
+  else if (best.p.g === "good" && best.d < 16) { key = "good"; text = `Proche de « ${best.p.n} ». ${best.p.t}`; }
+  else if (chroma > 58) { key = "bad"; text = `Couleur très vive. Ton contraste doux est mieux servi par des tons plus sourds, comme « ${bestGood.p.n} ».`; }
+  else { key = "try"; text = `Entre deux familles. La plus proche dans ta palette est « ${bestGood.p.n} ». Essaie-le sous ton menton à la lumière du jour.`; }
+  return { key, text, nearest: best.p.n };
+}
+
+// ---------- Image analysis ----------
+const work = document.createElement("canvas");
+const wctx = work.getContext("2d", { willReadFrequently: true });
+let fullCanvas = null;
+
+function extractColors(img) {
+  const S = 120, ratio = img.naturalWidth / img.naturalHeight;
+  const w = ratio >= 1 ? S : Math.round(S * ratio), h = ratio >= 1 ? Math.round(S / ratio) : S;
+  work.width = w; work.height = h;
+  wctx.drawImage(img, 0, 0, w, h);
+  const d = wctx.getImageData(0, 0, w, h).data;
+  const px = [];
+  const border = [];
+  const edge = Math.max(2, Math.round(Math.min(w, h) * 0.04));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    if (d[i + 3] < 128) continue;
+    const rgb = [d[i], d[i + 1], d[i + 2]];
+    const isBorder = x < edge || y < edge || x >= w - edge || y >= h - edge;
+    if (isBorder) border.push(rgb);
+    const dx = (x / w - 0.5) * 2, dy = (y / h - 0.5) * 2;
+    px.push({ rgb, lab: rgbToLab(...rgb), wt: 1 - 0.65 * Math.min(1, Math.hypot(dx, dy) / 1.414), border: isBorder });
+  }
+  // Background detection from a uniform border
+  let bgLab = null;
+  if (border.length) {
+    const med = [0, 1, 2].map(c => border.map(b => b[c]).sort((a, b) => a - b)[Math.floor(border.length / 2)]);
+    const ml = rgbToLab(...med);
+    let close = 0;
+    for (let i = 0; i < border.length; i += 3) if (dE00(rgbToLab(...border[i]), ml) < 8) close++;
+    if (close / Math.ceil(border.length / 3) > 0.6) bgLab = ml;
+  }
+  let pts = px.filter(p => !bgLab || dE00(p.lab, bgLab) > 12);
+  if (pts.length < px.length * 0.08) pts = px;
+  // k-means in Lab (Euclidean for speed)
+  const K = Math.min(5, pts.length);
+  const step = Math.max(1, Math.floor(pts.length / K));
+  let cents = Array.from({ length: K }, (_, i) => pts[Math.min(pts.length - 1, i * step)].lab.slice());
+  let assign = new Array(pts.length).fill(0);
+  for (let it = 0; it < 10; it++) {
+    for (let i = 0; i < pts.length; i++) {
+      let bi = 0, bd = Infinity;
+      for (let k = 0; k < K; k++) { const c = cents[k], l = pts[i].lab; const dd = (l[0]-c[0])**2 + (l[1]-c[1])**2 + (l[2]-c[2])**2; if (dd < bd) { bd = dd; bi = k; } }
+      assign[i] = bi;
+    }
+    const sums = Array.from({ length: K }, () => [0, 0, 0, 0]);
+    pts.forEach((p, i) => { const s = sums[assign[i]]; s[0] += p.lab[0] * p.wt; s[1] += p.lab[1] * p.wt; s[2] += p.lab[2] * p.wt; s[3] += p.wt; });
+    cents = cents.map((c, k) => sums[k][3] ? [sums[k][0] / sums[k][3], sums[k][1] / sums[k][3], sums[k][2] / sums[k][3]] : c);
+  }
+  const groups = Array.from({ length: K }, () => ({ r: 0, g: 0, b: 0, w: 0 }));
+  pts.forEach((p, i) => { const g = groups[assign[i]]; g.r += p.rgb[0] * p.wt; g.g += p.rgb[1] * p.wt; g.b += p.rgb[2] * p.wt; g.w += p.wt; });
+  const total = groups.reduce((s, g) => s + g.w, 0) || 1;
+  const out = groups.filter(g => g.w / total > 0.06).sort((a, b) => b.w - a.w).map(g => rgbToHex(g.r / g.w, g.g / g.w, g.b / g.w));
+  // merge near duplicates
+  const uniq = [];
+  for (const hx of out) if (!uniq.some(u => dE00(rgbToLab(...hexToRgb(u)), rgbToLab(...hexToRgb(hx))) < 6)) uniq.push(hx);
+  return uniq.slice(0, 4);
+}
+
+function samplePoint(img, clientX, clientY) {
+  const rect = img.getBoundingClientRect();
+  // account for object-fit: contain letterboxing
+  const ir = img.naturalWidth / img.naturalHeight, br = rect.width / rect.height;
+  let dw = rect.width, dh = rect.height, ox = 0, oy = 0;
+  if (ir > br) { dh = rect.width / ir; oy = (rect.height - dh) / 2; } else { dw = rect.height * ir; ox = (rect.width - dw) / 2; }
+  const fx = (clientX - rect.left - ox) / dw, fy = (clientY - rect.top - oy) / dh;
+  if (fx < 0 || fy < 0 || fx > 1 || fy > 1) return null;
+  const cx = Math.round(fx * fullCanvas.width), cy = Math.round(fy * fullCanvas.height);
+  const r = Math.max(2, Math.round(fullCanvas.width / 150));
+  const x0 = Math.max(0, cx - r), y0 = Math.max(0, cy - r);
+  const d = fullCanvas.getContext("2d").getImageData(x0, y0, Math.min(r * 2 + 1, fullCanvas.width - x0), Math.min(r * 2 + 1, fullCanvas.height - y0)).data;
+  let R = 0, G = 0, B = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4) { R += d[i]; G += d[i + 1]; B += d[i + 2]; n++; }
+  return { hex: rgbToHex(R / n, G / n, B / n), x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function resizeToBlob(img, max, q) {
+  const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(b => res({ blob: b, canvas: c }), "image/jpeg", q));
+}
+// ---------- Storage (IndexedDB, on this device) ----------
+const DB_NAME = "garde-robe-couleur", STORE = "items";
+let idb = null;
+function openIdb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore(STORE, { keyPath: "id" }); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(mode, fn) {
+  return new Promise((res, rej) => {
+    const t = idb.transaction(STORE, mode);
+    const st = t.objectStore(STORE);
+    const out = fn(st);
+    t.oncomplete = () => res(out && "result" in out ? out.result : undefined);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  });
+}
+const store = {
+  all: () => tx("readonly", st => st.getAll()),
+  put: item => tx("readwrite", st => st.put(item)),
+  del: id => tx("readwrite", st => st.delete(id))
+};
+
+// ---------- State ----------
+const state = { items: [], filter: "all", draft: null, urls: new Map() };
+const $ = id => document.getElementById(id);
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function safeUrl(u) { try { const x = new URL(u); return (x.protocol === "https:" || x.protocol === "http:") ? x.href : ""; } catch { return ""; } }
+function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+async function reload() {
+  const items = await store.all();
+  items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const keep = new Set(items.map(i => i.id));
+  for (const [id, u] of state.urls) if (!keep.has(id)) { URL.revokeObjectURL(u); state.urls.delete(id); }
+  state.items = items;
+  renderList();
+}
+
+function renderPalette() {
+  const make = g => PALETTE.filter(p => p.g === g).map(p => `<span class="sw ${g === "bad" ? "avoid" : ""}" title="${esc(p.t)}"><i style="background-color:${p.h}"></i>${esc(p.n)}</span>`).join("");
+  $("palGood").innerHTML = make("good"); $("palWarn").innerHTML = make("warn"); $("palBad").innerHTML = make("bad");
+}
+
+function imgSrc(item) {
+  if (item.image instanceof Blob) {
+    if (!state.urls.has(item.id)) state.urls.set(item.id, URL.createObjectURL(item.image));
+    return state.urls.get(item.id);
+  }
+  return "";
+}
+
+function renderList() {
+  const items = state.items.filter(i => state.filter === "all" || (i.status || "envie") === state.filter);
+  const grid = $("grid");
+  const ls = $("listState");
+  if (!state.items.length) {
+    ls.textContent = "";
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Aucun vêtement pour l'instant. Ajoute ta première photo ci-dessus.</div>`;
+    return;
+  }
+  ls.textContent = `${items.length} vêtement${items.length > 1 ? "s" : ""}`;
+  const statusLabel = { envie: "Envie", achete: "Acheté", ecarte: "Écarté" };
+  grid.innerHTML = items.map(i => {
+    const v = VERDICTS[i.verdict] || VERDICTS.try;
+    const src = imgSrc(i);
+    return `<button type="button" class="thumb" data-id="${esc(i.id)}">
+      <div class="img">${src ? `<img src="${esc(src)}" alt="" loading="lazy">` : ""}</div>
+      <div class="meta">
+        <span class="name">${esc(i.name || "Sans nom")}</span>
+        <span class="pill ${v.pill}"><i style="background:${esc(i.hex)}"></i>${v.label}</span>
+        <span class="status-tag">${statusLabel[i.status || "envie"]}${TYPE_LABELS[i.type] ? " · " + TYPE_LABELS[i.type] : ""}${i.price ? " · " + esc(i.price) : ""}${i.brand ? " · " + esc(i.brand) : ""}</span>
+      </div></button>`;
+  }).join("") || `<div class="empty" style="grid-column:1/-1">Rien dans cette catégorie.</div>`;
+}
+
+// ---------- Add flow ----------
+function setColor(hex, fromCandidate) {
+  const d = state.draft; if (!d) return;
+  d.hex = hex; d.judgement = judge(hex);
+  if (fromCandidate) $("pickerDot").hidden = true;
+  [...$("candidates").children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.hex === hex)));
+  const v = VERDICTS[d.judgement.key];
+  const box = $("verdict");
+  box.className = "verdict " + v.cls;
+  box.innerHTML = `<span class="chip" style="background:${hex}"></span><div><strong>${v.label}</strong><p class="small">${esc(d.judgement.text)}</p></div>`;
+}
+
+async function startDraft(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = async () => {
+    const big = await resizeToBlob(img, 1400, 0.85);
+    fullCanvas = big.canvas;
+    $("preview").src = URL.createObjectURL(big.blob);
+    const token = newId();
+    state.draft = { hex: null, judgement: null, token };
+    const small = await resizeToBlob(img, 900, 0.8);
+    state.draft.blob = small.blob;
+    const cands = extractColors(img);
+    $("candidates").innerHTML = cands.map(h => `<button type="button" class="cand" data-hex="${h}" aria-pressed="false" aria-label="Couleur ${h}" style="background:${h}"></button>`).join("");
+    $("editor").hidden = false; $("drop").hidden = true;
+    $("saveMsg").textContent = "";
+    ["fName", "fBrand", "fPrice", "fType", "fLink", "fNote"].forEach(id => { $(id).value = ""; $(id).classList.remove("detected"); });
+    if (cands[0]) setColor(cands[0], true);
+    readProductText(big.blob, token);
+    URL.revokeObjectURL(url);
+    $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alertMsg("Cette image n'a pas pu être lue. Essaie une capture d'écran en JPEG ou PNG."); };
+  img.src = url;
+}
+function alertMsg(t) { const b = $("saveBanner"); b.hidden = false; b.textContent = t; setTimeout(() => { b.hidden = true; }, 6000); }
+
+function resetDraft() {
+  state.draft = null; fullCanvas = null;
+  $("editor").hidden = true; $("drop").hidden = false; $("fileInput").value = "";
+  $("pickerDot").hidden = true;
+  $("ocrStatus").hidden = true;
+}
+
+async function saveDraft() {
+  const d = state.draft; if (!d || !d.hex) return;
+  const btn = $("saveBtn"); btn.disabled = true; btn.textContent = "Enregistrement...";
+  try {
+    const item = {
+      id: newId(),
+      name: $("fName").value.trim().slice(0, 120), brand: $("fBrand").value.trim().slice(0, 60), price: $("fPrice").value.trim().slice(0, 30), type: $("fType").value,
+      link: safeUrl($("fLink").value.trim()), note: $("fNote").value.trim().slice(0, 1000),
+      hex: d.hex, verdict: d.judgement.key, autoVerdict: d.judgement.key, autoText: d.judgement.text,
+      image: d.blob, status: "envie", createdAt: Date.now()
+    };
+    await store.put(item);
+    resetDraft();
+    await reload();
+    $("listTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    $("saveMsg").textContent = "L'enregistrement a échoué. Ton téléphone manque peut-être d'espace.";
+  } finally { btn.disabled = false; btn.textContent = "Enregistrer"; }
+}
+
+// ---------- Detail sheet ----------
+function openSheet(id) {
+  const i = state.items.find(x => x.id === id); if (!i) return;
+  const av = VERDICTS[i.autoVerdict] || VERDICTS[i.verdict] || VERDICTS.try;
+  const link = safeUrl(i.link || "");
+  const st = i.status || "envie";
+  const src = imgSrc(i);
+  $("sheetBody").innerHTML = `
+    <div class="row between"><h2 id="sheetTitle">${esc(i.name || "Sans nom")}</h2><button type="button" id="closeSheet" aria-label="Fermer">Fermer</button></div>
+    ${src ? `<img src="${esc(src)}" alt="">` : ""}
+    <div class="verdict ${av.cls}"><span class="chip" style="background:${esc(i.hex)}"></span><div><strong>${av.label}</strong><p class="small">${esc(i.autoText || "")}</p></div></div>
+    <p class="small muted">${[TYPE_LABELS[i.type], i.brand, i.price].filter(Boolean).map(esc).join(" · ")}</p>
+    ${i.note ? `<p class="small">${esc(i.note)}</p>` : ""}
+    ${link ? `<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">Voir en ligne</a>` : ""}
+    <div class="seg" role="group" aria-label="Statut">
+      ${[["envie","Envie"],["achete","Acheté"],["ecarte","Écarté"]].map(([k,l]) => `<button type="button" data-st="${k}" aria-pressed="${st === k}">${l}</button>`).join("")}
+    </div>
+    <div class="row between"><span class="small muted">Ajouté le ${new Date(i.createdAt).toLocaleDateString("fr-CA")}</span><button type="button" class="danger" id="delBtn">Supprimer</button></div>`;
+  const dlg = $("sheet");
+  $("closeSheet").onclick = () => dlg.close();
+  $("sheetBody").querySelectorAll("[data-st]").forEach(b => b.onclick = async () => {
+    const ns = b.dataset.st; if (ns === (i.status || "envie")) return;
+    $("sheetBody").querySelectorAll("[data-st]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    i.status = ns;
+    try { await store.put(i); } catch {}
+    renderList();
+  });
+  let armed = false;
+  $("delBtn").onclick = async () => {
+    if (!armed) { armed = true; $("delBtn").textContent = "Confirmer la suppression"; return; }
+    dlg.close();
+    try { await store.del(i.id); } catch {}
+    await reload();
+  };
+  if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+}
+
+// ---------- Backup ----------
+function blobToDataUrl(b) { return new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(b); }); }
+async function dataUrlToBlob(u) { const r = await fetch(u); return r.blob(); }
+
+async function exportAll() {
+  const msg = $("backupMsg");
+  if (!state.items.length) { msg.textContent = "Rien à exporter pour l'instant."; return; }
+  msg.textContent = "Préparation de la copie...";
+  const out = [];
+  for (const i of state.items) {
+    const copy = Object.assign({}, i);
+    copy.image = i.image instanceof Blob ? await blobToDataUrl(i.image) : null;
+    out.push(copy);
+  }
+  const blob = new Blob([JSON.stringify({ app: "garde-robe-couleur", version: 1, exportedAt: new Date().toISOString(), items: out })], { type: "application/json" });
+  const name = `garde-robe-${new Date().toISOString().slice(0, 10)}.json`;
+  const file = new File([blob], name, { type: "application/json" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Copie de ma garde-robe" });
+      msg.textContent = "Copie exportée.";
+      return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") { msg.textContent = ""; return; } }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  msg.textContent = "Copie téléchargée (" + name + ").";
+}
+
+async function importAll(file) {
+  const msg = $("backupMsg");
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || !Array.isArray(data.items)) throw new Error("format");
+    let n = 0;
+    for (const raw of data.items) {
+      if (!raw || typeof raw.hex !== "string") continue;
+      const item = {
+        id: String(raw.id || newId()).slice(0, 40),
+        name: String(raw.name || "").slice(0, 120), brand: String(raw.brand || "").slice(0, 60), price: String(raw.price || "").slice(0, 30), type: TYPE_LABELS[raw.type] ? raw.type : "",
+        link: safeUrl(String(raw.link || "")), note: String(raw.note || "").slice(0, 1000),
+        hex: /^#[0-9A-Fa-f]{6}$/.test(raw.hex) ? raw.hex.toUpperCase() : "#9A9A9C",
+        verdict: VERDICTS[raw.verdict] ? raw.verdict : "try", autoVerdict: VERDICTS[raw.autoVerdict] ? raw.autoVerdict : "try",
+        autoText: String(raw.autoText || ""), status: ["envie", "achete", "ecarte"].includes(raw.status) ? raw.status : "envie",
+        createdAt: Number(raw.createdAt) || Date.now(),
+        image: typeof raw.image === "string" && raw.image.startsWith("data:image/") ? await dataUrlToBlob(raw.image) : null
+      };
+      await store.put(item); n++;
+    }
+    await reload();
+    msg.textContent = `${n} vêtement${n > 1 ? "s" : ""} importé${n > 1 ? "s" : ""}.`;
+  } catch {
+    msg.textContent = "Ce fichier n'est pas une copie valide de l'app.";
+  } finally { $("importInput").value = ""; }
+}
+
+// ---------- Lecture du texte (OCR, sur l'appareil) ----------
+const TYPE_LABELS = { haut: "Haut", chandail: "Chandail / polaire", manteau: "Manteau / veste", bas: "Pantalon / short", chaussures: "Chaussures", accessoire: "Accessoire" };
+const BRANDS = ["Cotopaxi","Patagonia","Arc'teryx","Lululemon","The North Face","Columbia","MEC","Kühl","Kuhl","Fjällräven","Fjallraven","Uniqlo","Simons","Roots","Canada Goose","Aritzia","Everlane","Vuori","Rab","Mountain Hardwear","Outdoor Research","Black Diamond","Salomon","Hoka","Nike","Adidas","Under Armour","New Balance","Levi's","Gap","Banana Republic","J.Crew","Frank And Oak","Frank + Oak","Kotn","DUER","Smartwool","Icebreaker","Helly Hansen","Mammut","Norrøna","Norrona","Filson","Carhartt","Quartz Co","Tilley","Blundstone","Merrell","Taiga","Marmot","Prana","prAna","Ten Tree","tentree","Mountain Equipment","Peak Performance","Houdini","Fjällräven","Bench","Zara","H&M","COS","Muji","Allbirds","Asics","Saucony","Brooks","On Running","Ciele","Tracksmith","Bandit","Satisfy","Norda","Herschel","Nudie","Naked & Famous","Danier","Kanuk","Quartz","Rudsak","Mackage","Noize","Tilley","Atmosphere","Woods","Duluth"];
+const TYPE_WORDS = {
+  manteau: ["jacket","manteau","veste","parka","coat","anorak","shell","doudoune","puffer","softshell","hardshell","insulated","isolé","isolée","vest","gilet","windbreaker","coupe-vent"],
+  chandail: ["fleece","polaire","sweater","chandail","crew","crewneck","pullover","hoodie","hoody","kangourou","cardigan","sweatshirt","half-zip","half zip","1/2 zip","quarter zip","1/4 zip","pile","sherpa","tricot","knit","pull"],
+  haut: ["t-shirt","tshirt","tee","shirt","chemise","polo","tank","camisole","henley","long sleeve","manches longues","manches courtes","top","haut","base layer","couche de base"],
+  bas: ["pant","pants","pantalon","jean","jeans","jogger","joggers","chino","chinos","short","shorts","legging","leggings","cargo"],
+  chaussures: ["shoe","shoes","chaussure","chaussures","sneaker","sneakers","boot","boots","botte","bottes","espadrille","espadrilles","sandale","sandal","runner","trail runner"],
+  accessoire: ["hat","cap","casquette","tuque","beanie","toque","scarf","foulard","glove","gloves","gant","gants","mitaine","mitaines","sock","socks","chaussettes","belt","ceinture","bag","sac","backpack"]
+};
+const NOISE = /(panier|cart|checkout|menu|livraison|shipping|taille|size|couleur|color|colour|ajouter|add to|avis|review|rating|solde|sale|free|gratuit|retour|return|connexion|sign in|login|search|recherche|wishlist|favoris|quantit|qty|guide|stock|disponible|available|pickup|ramassage|klarna|afterpay|paiement|installments|versements|compare|details|détails|description|accueil|home|shop|magasiner|femmes|women|kids|enfants|new arrivals|nouveaut)/i;
+
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function hasWord(text, w) { return new RegExp("(^|[^a-zà-ÿ])" + escRe(w.toLowerCase()) + "([^a-zà-ÿ]|$)", "i").test(text); }
+
+function findBrand(text) {
+  let best = null;
+  for (const b of BRANDS) {
+    const re = new RegExp("(^|[^A-Za-zÀ-ÿ])" + escRe(b).replace(/'/g, "['’]?") + "([^A-Za-zÀ-ÿ]|$)", "i");
+    const m = re.exec(text);
+    if (m && (!best || m.index < best.idx || (m.index === best.idx && b.length > best.b.length))) best = { b, idx: m.index };
+  }
+  if (!best) return "";
+  const canon = { "Kuhl": "Kühl", "Fjallraven": "Fjällräven", "Norrona": "Norrøna", "prAna": "Prana", "tentree": "Ten Tree", "Frank + Oak": "Frank And Oak", "Quartz": "Quartz Co" };
+  return canon[best.b] || best.b;
+}
+
+function findPrice(text) {
+  const t = text.replace(/\s+/g, " ");
+  const re = /(?:(?:CA|C|US)?\$\s?(\d{1,4}(?:[.,]\d{2})?))|(?:(\d{1,4}(?:[.,]\d{2})?)\s?\$)|(?:(?:CAD|USD)\s?(\d{1,4}(?:[.,]\d{2})?))|(?:(\d{1,4}(?:[.,]\d{2})?)\s?(?:CAD|USD))/gi;
+  const found = [];
+  let m;
+  while ((m = re.exec(t))) {
+    const raw = m[1] || m[2] || m[3] || m[4];
+    const v = parseFloat(raw.replace(",", "."));
+    if (v >= 5 && v < 5000) found.push(v);
+  }
+  if (!found.length) return "";
+  const v = Math.min(...found);
+  return (Number.isInteger(v) ? String(v) : v.toFixed(2).replace(".", ",")) + " $";
+}
+
+function findType(name, text) {
+  const score = {};
+  for (const [k, words] of Object.entries(TYPE_WORDS)) {
+    let s = 0;
+    for (const w of words) { if (name && hasWord(name, w)) s += 3; else if (hasWord(text, w)) s += 1; }
+    score[k] = s;
+  }
+  const best = Object.entries(score).sort((a, b) => b[1] - a[1])[0];
+  return best && best[1] > 0 ? best[0] : "";
+}
+
+function findName(lines, brand) {
+  const allWords = Object.values(TYPE_WORDS).flat();
+  let best = null;
+  const maxH = Math.max(1, ...lines.map(l => l.h || 0));
+  for (const l of lines) {
+    let t = (l.text || "").replace(/[|_~•·»«©®™*]+/g, " ").replace(/\s+/g, " ").trim();
+    if (t.length < 4 || t.length > 70) continue;
+    const letters = (t.match(/[A-Za-zÀ-ÿ]/g) || []).length;
+    if (letters < 4 || letters / t.length < 0.55) continue;
+    if (NOISE.test(t)) continue;
+    if (/\$|\d{2,}[.,]\d{2}/.test(t) && letters < 10) continue;
+    if (brand && t.toLowerCase() === brand.toLowerCase()) continue;
+    if ((l.conf ?? 80) < 55) continue;
+    let s = (l.h || 10) / maxH * 10;
+    if (allWords.some(w => hasWord(t, w))) s += 6;
+    if (brand && t.toLowerCase().includes(brand.toLowerCase())) s += 2;
+    if (/men['’]?s|homme|hommes/i.test(t)) s += 2;
+    s -= (l.y || 0) * 3;
+    if (!best || s > best.s) best = { t, s };
+  }
+  if (!best) return "";
+  let name = best.t.replace(/\s*[-–,]?\s*(pour\s+)?(men['’]?s|homme|hommes)\s*$/i, "").trim();
+  if (name === name.toUpperCase()) name = name.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+  return name.slice(0, 120);
+}
+
+function parseProduct(lines) {
+  const text = lines.map(l => l.text).join("\n");
+  const brand = findBrand(text);
+  const name = findName(lines, brand);
+  const priceText = lines.filter(l => !NOISE.test(l.text) || /\$\s?\d|\d\s?\$/.test(l.text) && !/(free|gratuit|livraison|shipping|over|plus de|économ|save)/i.test(l.text)).map(l => l.text).join("\n");
+  return { brand, name, price: findPrice(priceText), type: findType(name, text) };
+}
+
+let ocrWorkerP = null;
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+function getOcrWorker(onProgress) {
+  if (!ocrWorkerP) {
+    ocrWorkerP = (async () => {
+      if (!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+      return window.Tesseract.createWorker(["fra", "eng"], 1, { logger: m => { if (ocrProgress) ocrProgress(m); } });
+    })().catch(e => { ocrWorkerP = null; throw e; });
+  }
+  ocrProgress = onProgress;
+  return ocrWorkerP;
+}
+let ocrProgress = null;
+
+async function readProductText(blob, token) {
+  const st = $("ocrStatus");
+  st.hidden = false;
+  st.textContent = "Lecture du texte de la photo...";
+  try {
+    const worker = await getOcrWorker(m => {
+      if (state.draft?.token !== token) return;
+      if (m.status === "loading language traineddata") st.textContent = "Première utilisation : téléchargement du module de lecture...";
+      else if (m.status === "recognizing text") st.textContent = `Lecture du texte de la photo... ${Math.round((m.progress || 0) * 100)} %`;
+    });
+    const { data } = await worker.recognize(blob);
+    if (state.draft?.token !== token) return;
+    const H = (data.lines && data.lines[0]?.bbox) ? Math.max(...data.lines.map(l => l.bbox.y1)) || 1 : 1;
+    const lines = (data.lines || []).map(l => ({ text: l.text, conf: l.confidence, h: l.bbox ? l.bbox.y1 - l.bbox.y0 : 10, y: l.bbox ? l.bbox.y0 / H : 0 }));
+    const p = parseProduct(lines);
+    const filled = [];
+    const fill = (id, val, label) => { const el = $(id); if (val && !el.value) { el.value = val; el.classList.add("detected"); filled.push(label); } };
+    fill("fName", p.name, "nom"); fill("fBrand", p.brand, "marque"); fill("fPrice", p.price, "prix"); fill("fType", p.type, "type");
+    st.textContent = filled.length ? `Détecté : ${filled.join(", ")}. Vérifie et corrige au besoin.` : "Aucun nom de produit lisible sur la photo. Tu peux remplir les champs à la main.";
+  } catch {
+    if (state.draft?.token === token) st.textContent = "La lecture du texte n'a pas fonctionné (connexion requise la première fois). Tu peux remplir les champs à la main.";
+  }
+}
+
+// ---------- Wiring ----------
+renderPalette();
+$("fileInput").addEventListener("change", e => startDraft(e.target.files[0]));
+const drop = $("drop");
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); startDraft(e.dataTransfer.files[0]); });
+window.addEventListener("paste", e => { const f = [...(e.clipboardData?.files || [])].find(x => x.type.startsWith("image/")); if (f) startDraft(f); });
+$("preview").addEventListener("click", e => {
+  if (!fullCanvas) return;
+  const s = samplePoint($("preview"), e.clientX, e.clientY); if (!s) return;
+  const dot = $("pickerDot"); dot.hidden = false; dot.style.left = s.x + "px"; dot.style.top = s.y + "px"; dot.style.background = s.hex;
+  setColor(s.hex, false);
+});
+$("candidates").addEventListener("click", e => { const b = e.target.closest(".cand"); if (b) setColor(b.dataset.hex, true); });
+$("cancelBtn").addEventListener("click", resetDraft);
+["fName", "fBrand", "fPrice", "fType"].forEach(id => $(id).addEventListener("input", () => $(id).classList.remove("detected")));
+$("saveBtn").addEventListener("click", saveDraft);
+$("filters").addEventListener("click", e => {
+  const b = e.target.closest("[data-f]"); if (!b) return;
+  state.filter = b.dataset.f;
+  [...$("filters").children].forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  renderList();
+});
+$("grid").addEventListener("click", e => { const t = e.target.closest(".thumb"); if (t) openSheet(t.dataset.id); });
+$("sheet").addEventListener("click", e => { if (e.target === $("sheet")) $("sheet").close(); });
+$("exportBtn").addEventListener("click", exportAll);
+$("importInput").addEventListener("change", e => importAll(e.target.files[0]));
+
+(async function init() {
+  try {
+    idb = await openIdb();
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    await reload();
+  } catch {
+    $("listState").textContent = "";
+    const b = $("saveBanner"); b.hidden = false;
+    b.textContent = "Ce navigateur bloque la sauvegarde (navigation privée ?). Ouvre l'app dans Safari en mode normal.";
+  }
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
+</script>
+</body>
+</html>
