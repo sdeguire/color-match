@@ -544,9 +544,26 @@ function tx(mode, fn) {
     t.onabort = () => rej(t.error);
   });
 }
+// Photos are stored as raw bytes, not as a Blob: Safari on iPhone (home screen apps
+// especially) can fail to write Blobs into IndexedDB. Older records holding a Blob
+// are still read as before.
+function blobToBuffer(b) {
+  if (b.arrayBuffer) return b.arrayBuffer();
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsArrayBuffer(b); });
+}
+async function toRecord(item) {
+  const rec = { ...item };
+  if (item.image instanceof Blob) { rec.imageBuf = await blobToBuffer(item.image); rec.imageType = item.image.type || "image/jpeg"; rec.image = null; }
+  return rec;
+}
+function fromRecord(rec) {
+  if (rec.imageBuf) { rec.image = new Blob([rec.imageBuf], { type: rec.imageType || "image/jpeg" }); delete rec.imageBuf; delete rec.imageType; }
+  return rec;
+}
 const store = {
-  all: () => tx("readonly", st => st.getAll()),
-  put: item => tx("readwrite", st => st.put(item)),
+  all: async () => ((await tx("readonly", st => st.getAll())) || []).map(fromRecord),
+  put: async item => { const rec = await toRecord(item); return tx("readwrite", st => st.put(rec)); },
+  get: id => tx("readonly", st => st.get(id)),
   del: id => tx("readwrite", st => st.delete(id))
 };
 
@@ -663,11 +680,14 @@ async function saveDraft() {
       image: d.blob, status: "envie", createdAt: Date.now()
     };
     await store.put(item);
+    // read it back: a silent failure must not look like a success
+    if (!(await store.get(item.id))) throw new Error("relecture vide");
     resetDraft();
     await reload();
     $("listTitle").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) {
-    $("saveMsg").textContent = "L'enregistrement a échoué. Ton téléphone manque peut-être d'espace.";
+    const why = e && (e.name || e.message) ? ` (détail : ${[e.name, e.message].filter(Boolean).join(" : ")})` : "";
+    $("saveMsg").textContent = `L'enregistrement a échoué${why}. Envoie-moi une capture de ce message.`;
   } finally { btn.disabled = false; btn.textContent = "Enregistrer"; }
 }
 
